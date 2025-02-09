@@ -1,4 +1,4 @@
-package mpdclient
+package client
 
 import (
 	"errors"

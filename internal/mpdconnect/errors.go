@@ -1,4 +1,4 @@
-package mpd
+package mpdconnect
 
 import "errors"
 
