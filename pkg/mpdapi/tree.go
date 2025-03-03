@@ -74,7 +74,7 @@ type ParsedItem struct {
 	Genre       string `mpd_prefix:"Genre"`
 }
 
-func (api *MpdApiImpl) Tree() (TreeItem, error) {
+func (api *Impl) Tree() (TreeItem, error) {
 	cmd := commands.NewSingleCommand(commands.LISTALLINFO)
 	list, err := api.mpdClient.SendCommand(cmd)
 	if err != nil {
@@ -132,8 +132,7 @@ func findParentDirItem(path string, currentActiveDir *DirectoryItem) *DirectoryI
 	return findParentDirItem(path, currentActiveDir.parent)
 }
 
-func (api *MpdApiImpl) UpdateDB(path string) error {
-	cmd := commands.NewSingleCommand(commands.UPDATE)
-	cmd, _ = cmd.AddParams(path)
+func (api *Impl) UpdateDB(path string) error {
+	cmd := commands.NewSingleCommand(commands.UPDATE).AddParams(path)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }

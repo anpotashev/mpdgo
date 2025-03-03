@@ -17,19 +17,17 @@ type Output struct {
 	Enabled bool   `mpd_prefix:"outputenabled"`
 }
 
-func (api *MpdApiImpl) EnableOutput(id int) error {
-	cmd := commands.NewSingleCommand(commands.ENABLE_OUTPUT)
-	cmd, _ = cmd.AddParams(id)
+func (api *Impl) EnableOutput(id int) error {
+	cmd := commands.NewSingleCommand(commands.ENABLE_OUTPUT).AddParams(id)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) DisableOutput(id int) error {
-	cmd := commands.NewSingleCommand(commands.DISABLE_OUTPUT)
-	cmd, _ = cmd.AddParams(id)
+func (api *Impl) DisableOutput(id int) error {
+	cmd := commands.NewSingleCommand(commands.DISABLE_OUTPUT).AddParams(id)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) ListOutputs() ([]Output, error) {
+func (api *Impl) ListOutputs() ([]Output, error) {
 	cmd := commands.NewSingleCommand(commands.OUTPUTS)
 	list, err := api.mpdClient.SendCommand(cmd)
 	if err != nil {

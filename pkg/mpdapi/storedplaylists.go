@@ -9,7 +9,7 @@ type StoredPlaylists interface {
 	GetPlaylists() ([]Playlist, error)
 }
 
-func (api *MpdApiImpl) GetPlaylists() ([]Playlist, error) {
+func (api *Impl) GetPlaylists() ([]Playlist, error) {
 	cmd := commands.NewSingleCommand(commands.LISTPLAYLISTS)
 	list, err := api.mpdClient.SendCommand(cmd)
 	if err != nil {

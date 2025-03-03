@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 	"errors"
-	"github.com/anpotashev/mpdgo/internal/mpdconnect"
+	"github.com/anpotashev/mpdgo/internal/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
@@ -14,9 +14,9 @@ type MockMpdRWPoolFactory struct {
 	mock.Mock
 }
 
-func (m *MockMpdRWPoolFactory) CreateAndConnect(host string, port uint16, password string) (*mpdconnect.MpdConnectImpl, error) {
+func (m *MockMpdRWPoolFactory) CreateAndConnect(host string, port uint16, password string) (*pool.MpdConnectImpl, error) {
 	args := m.Called(host, port, password)
-	return args.Get(0).(*mpdconnect.MpdConnectImpl), args.Error(1)
+	return args.Get(0).(*pool.MpdConnectImpl), args.Error(1)
 }
 
 type MockMpdRwPool struct {
@@ -66,7 +66,7 @@ func TestMpdClientImpl_Connect(t *testing.T) {
 	t.Run("successful connection", func(t *testing.T) {
 		mockMpdRWPoolFactory := new(MockMpdRWPoolFactory)
 		mockMpdRWPoolFactory.On("CreateAndConnect", testHost, testPort, testPassword).
-			Return(&mpdconnect.MpdConnectImpl{}, nil)
+			Return(&pool.MpdConnectImpl{}, nil)
 		client := &MpdClientImpl{
 			host:     testHost,
 			port:     testPort,
@@ -84,7 +84,7 @@ func TestMpdClientImpl_Connect(t *testing.T) {
 		mockMpdRWPoolFactory := new(MockMpdRWPoolFactory)
 		expectedError := ConnectionError
 		mockMpdRWPoolFactory.On("CreateAndConnect", testHost, testPort, testPassword).
-			Return(&mpdconnect.MpdConnectImpl{}, errors.New("connection error"))
+			Return(&pool.MpdConnectImpl{}, errors.New("connection error"))
 		client := &MpdClientImpl{
 			host:     testHost,
 			port:     testPort,
@@ -172,7 +172,7 @@ func TestMpdClientImpl_SendCommand(t *testing.T) {
 	})
 	t.Run("connection error", func(t *testing.T) {
 		mockMpdRwPool := new(MockMpdRwPool)
-		mockMpdRwPool.On("SendCommand", command.String()).Return([]string{}, mpdconnect.ConnectionError)
+		mockMpdRwPool.On("SendCommand", command.String()).Return([]string{}, pool.ConnectionError)
 		mockChan := make(chan struct{}, 1)
 		mockMpdRwPool.On("Disconnect").Run(func(args mock.Arguments) {
 			mockChan <- struct{}{}
@@ -199,7 +199,7 @@ func TestMpdClientImpl_SendCommand(t *testing.T) {
 		mockMpdRwPool.On("SendCommand", command.String()).Run(func(args mock.Arguments) {
 			client.currentMpdRWPool = nil
 		}).
-			Return([]string{}, mpdconnect.ConnectionError)
+			Return([]string{}, pool.ConnectionError)
 		client = MpdClientImpl{
 			host:             testHost,
 			port:             testPort,

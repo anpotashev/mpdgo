@@ -78,7 +78,7 @@ func TestMpdRwImpl(t *testing.T) {
 				closeChan <- struct{}{}
 			}).Return(nil)
 		mpdRw, err := newMpdRwImpl(dialer, ctx, host, port, password)
-		assert.ErrorIs(t, err, WrongAnswerFromServerError)
+		assert.ErrorIs(t, err, ServerError)
 		assert.Nil(t, mpdRw)
 		select {
 		case <-closeChan:

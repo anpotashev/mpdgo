@@ -57,30 +57,26 @@ type Status struct {
 	NextSongId     int
 }
 
-func (api *MpdApiImpl) Random(value bool) error {
-	cmd := commands.NewSingleCommand(commands.RANDOM)
-	cmd, _ = cmd.AddParams(value)
+func (api *Impl) Random(value bool) error {
+	cmd := commands.NewSingleCommand(commands.RANDOM).AddParams(value)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Repeat(value bool) error {
-	cmd := commands.NewSingleCommand(commands.REPEAT)
-	cmd, _ = cmd.AddParams(value)
+func (api *Impl) Repeat(value bool) error {
+	cmd := commands.NewSingleCommand(commands.REPEAT).AddParams(value)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Single(value bool) error {
-	cmd := commands.NewSingleCommand(commands.SINGLE)
-	cmd, _ = cmd.AddParams(value)
+func (api *Impl) Single(value bool) error {
+	cmd := commands.NewSingleCommand(commands.SINGLE).AddParams(value)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
-func (api *MpdApiImpl) Consume(value bool) error {
-	cmd := commands.NewSingleCommand(commands.CONSUME)
-	cmd, _ = cmd.AddParams(value)
+func (api *Impl) Consume(value bool) error {
+	cmd := commands.NewSingleCommand(commands.CONSUME).AddParams(value)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Status() (Status, error) {
+func (api *Impl) Status() (Status, error) {
 	cmd := commands.NewSingleCommand(commands.STATUS)
 	list, err := api.mpdClient.SendCommand(cmd)
 	if err != nil {

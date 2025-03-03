@@ -16,6 +16,11 @@ func main() {
 		fmt.Println("error")
 		return
 	}
+	tree, err := api.Tree()
+	if err != nil {
+		return
+	}
+	fmt.Println(tree)
 	status, err := api.Status()
 	if err != nil {
 		return

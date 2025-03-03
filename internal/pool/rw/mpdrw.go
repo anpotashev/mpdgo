@@ -3,11 +3,10 @@ package rw
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"github.com/anpotashev/mpdgo/internal/commands"
+	"github.com/rs/zerolog/log"
 	"net"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -35,13 +34,9 @@ func (d *RealDialer) Dial(network, address string) (net.Conn, error) {
 }
 
 const (
-	defaultTimeout   = time.Second
-	maxCommandsCount = 100
-)
-
-var (
-	WrongAnswerFromServerError = errors.New("wrong answer from mpd server")
-	EmptyCommandsList          = errors.New("empty commands list")
+	//  defaultTimeout - стандартное время ожидания ответа, после отправки команды
+	// используется для всех команд, кроме idle
+	defaultTimeout = time.Second
 )
 
 func NewMpdRW(ctx context.Context, host string, port uint16, password string) (*MpdRWImpl, error) {
@@ -89,7 +84,7 @@ func (rw *MpdRWImpl) getVersion() (string, error) {
 	}
 	versionAnswer = strings.TrimSuffix(versionAnswer, "\n")
 	if !strings.HasPrefix(versionAnswer, "OK MPD ") {
-		return "", WrongAnswerFromServerError
+		return "", ServerError
 	}
 	return strings.TrimPrefix(versionAnswer, "OK MPD "), nil
 }
@@ -98,8 +93,8 @@ func (rw *MpdRWImpl) sendPassword(password string) error {
 	if len(password) == 0 {
 		return nil
 	}
-	passwordCommand := commands.NewSingleCommand(commands.PASSWORD)
-	passwordCommand.AddParams(password)
+	passwordCommand := commands.NewSingleCommand(commands.PASSWORD).
+		AddParams(password)
 	_, err := rw.SendCommand(passwordCommand)
 	return err
 }
@@ -116,22 +111,14 @@ func (rw *MpdRWImpl) readWithTimeout(timeout time.Duration) (string, error) {
 	return rw.readerWriter.ReadString('\n')
 }
 
-func (rw *MpdRWImpl) parseError(answer string, command string) error {
-	re := regexp.MustCompile(fmt.Sprintf(`ACK\ .*\{%s\} (.+)`, regexp.QuoteMeta(command)))
-	matches := re.FindStringSubmatch(answer)
-	if len(matches) > 1 {
-		return newCommandError(command, matches[1])
-	}
-	return newCommandError(command, fmt.Sprintf("Unparseable answer: %s", answer))
-}
-
 func (rw *MpdRWImpl) SendCommand(command *commands.SingleCommand) ([]string, error) {
+	log.Debug().Str("command", command.String()).Msg("Sending command")
 	_, err := rw.readerWriter.WriteString(command.String())
 	if err != nil {
-		return nil, err
+		return nil, wrapIntoServerError(err)
 	}
 	if err = rw.readerWriter.Flush(); err != nil {
-		return nil, err
+		return nil, wrapIntoServerError(err)
 	}
 	timeout := defaultTimeout
 	if command.String() == commands.NewSingleCommand(commands.IDLE).String() {
@@ -141,7 +128,7 @@ func (rw *MpdRWImpl) SendCommand(command *commands.SingleCommand) ([]string, err
 	for {
 		line, err := rw.readWithTimeout(timeout)
 		if err != nil {
-			return nil, err
+			return nil, wrapIntoServerError(err)
 		}
 		line = strings.TrimSuffix(line, "\n")
 		if len(line) == 0 {
@@ -154,6 +141,7 @@ func (rw *MpdRWImpl) SendCommand(command *commands.SingleCommand) ([]string, err
 			}
 			return result, nil
 		}
+		result = append(result, line)
 	}
 }
 
@@ -162,14 +150,7 @@ func isAnswerEnded(s string) (bool, error) {
 		return true, nil
 	}
 	if strings.HasPrefix(s, "ACK") {
-		re := regexp.MustCompile(`ACK .*\{(.*)\} (.+)`)
-		matches := re.FindStringSubmatch(s)
-		if len(matches) == 3 {
-			command := matches[1]
-			errorMessage := matches[2]
-			return true, newCommandError(command, errorMessage)
-		}
-		return true, newCommandError("unexpected answer", s)
+		return true, parseACKAnswer(s)
 	}
 	return false, nil
 }
@@ -177,15 +158,15 @@ func isAnswerEnded(s string) (bool, error) {
 func (rw *MpdRWImpl) SendBatchCommand(command *commands.BatchCommand) error {
 	_, err := rw.readerWriter.WriteString(command.String())
 	if err != nil {
-		return err
+		return wrapIntoServerError(err)
 	}
 	if err = rw.readerWriter.Flush(); err != nil {
-		return err
+		return wrapIntoServerError(err)
 	}
 	for {
 		line, err := rw.readWithTimeout(defaultTimeout)
 		if err != nil {
-			return err
+			return wrapIntoServerError(err)
 		}
 		line = strings.TrimSuffix(line, "\n")
 		if len(line) == 0 {

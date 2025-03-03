@@ -27,7 +27,7 @@ func NewSingleCommand(command CommandType) *SingleCommand {
 	}
 }
 
-func (c *SingleCommand) AddParams(params ...any) (*SingleCommand, error) {
+func (c *SingleCommand) AddParams(params ...any) *SingleCommand {
 	for _, param := range params {
 		var p Param
 		switch v := param.(type) {
@@ -38,9 +38,9 @@ func (c *SingleCommand) AddParams(params ...any) (*SingleCommand, error) {
 		case bool:
 			p = BoolParam(v)
 		default:
-			return nil, fmt.Errorf("unknown param type: %T", v)
+			continue
 		}
 		c.params = append(c.params, p)
 	}
-	return c, nil
+	return c
 }

@@ -36,7 +36,7 @@ type CurrentPlaylist interface {
 	Shuffle(fromPos, toPos int) error
 }
 
-func (api *MpdApiImpl) Playlist() (*Playlist, error) {
+func (api *Impl) Playlist() (*Playlist, error) {
 	command := commands.NewSingleCommand(commands.PLAYLIST_INFO)
 	list, err := api.mpdClient.SendCommand(command)
 	if err != nil {
@@ -51,12 +51,12 @@ func (api *MpdApiImpl) Playlist() (*Playlist, error) {
 	}, nil
 }
 
-func (api *MpdApiImpl) Clear() error {
+func (api *Impl) Clear() error {
 	command := commands.NewSingleCommand(commands.CLEAR)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(command))
 }
 
-func (api *MpdApiImpl) Add(path string) error {
+func (api *Impl) Add(path string) error {
 	paths, err := api.getFilesPaths(path)
 	if err != nil {
 		return err
@@ -66,15 +66,14 @@ func (api *MpdApiImpl) Add(path string) error {
 	}
 	var cmds []*commands.SingleCommand
 	for _, p := range paths {
-		cmd := commands.NewSingleCommand(commands.ADD)
-		cmd, _ = cmd.AddParams(p)
+		cmd := commands.NewSingleCommand(commands.ADD).AddParams(p)
 		cmds = append(cmds, cmd)
 	}
 	batchCmds := commands.NewBatchCommands(cmds)
 	return wrapPkgError(api.mpdClient.SendBatchCommands(batchCmds))
 }
 
-func (api *MpdApiImpl) AddToPos(pos int, path string) error {
+func (api *Impl) AddToPos(pos int, path string) error {
 	paths, err := api.getFilesPaths(path)
 	if err != nil {
 		return err
@@ -84,18 +83,15 @@ func (api *MpdApiImpl) AddToPos(pos int, path string) error {
 	}
 	var cmds []*commands.SingleCommand
 	for i, p := range paths {
-		cmd := commands.NewSingleCommand(commands.ADD_ID)
-		cmd, _ = cmd.AddParams(p)
-		cmd, _ = cmd.AddParams(i + pos)
+		cmd := commands.NewSingleCommand(commands.ADD_ID).AddParams(p).AddParams(i + pos)
 		cmds = append(cmds, cmd)
 	}
 	batchCmds := commands.NewBatchCommands(cmds)
 	return wrapPkgError(api.mpdClient.SendBatchCommands(batchCmds))
 }
 
-func (api *MpdApiImpl) getFilesPaths(path string) ([]string, error) {
-	cmd := commands.NewSingleCommand(commands.LISTALL)
-	cmd, _ = cmd.AddParams(path)
+func (api *Impl) getFilesPaths(path string) ([]string, error) {
+	cmd := commands.NewSingleCommand(commands.LISTALL).AddParams(path)
 	list, err := api.mpdClient.SendCommand(cmd)
 	if err != nil {
 		return nil, wrapPkgError(err)
@@ -113,34 +109,27 @@ func (api *MpdApiImpl) getFilesPaths(path string) ([]string, error) {
 	return paths, nil
 }
 
-func (api *MpdApiImpl) DeleteByPos(pos int) error {
-	cmd := commands.NewSingleCommand(commands.DELETE)
-	cmd, _ = cmd.AddParams(pos)
+func (api *Impl) DeleteByPos(pos int) error {
+	cmd := commands.NewSingleCommand(commands.DELETE).AddParams(pos)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Move(fromPos, toPos int) error {
-	cmd := commands.NewSingleCommand(commands.MOVE)
-	cmd, _ = cmd.AddParams(fromPos)
-	cmd, _ = cmd.AddParams(toPos)
+func (api *Impl) Move(fromPos, toPos int) error {
+	cmd := commands.NewSingleCommand(commands.MOVE).AddParams(fromPos).AddParams(toPos)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) BatchMove(fromStartPos, fromEndPos, toPos int) error {
-	cmd := commands.NewSingleCommand(commands.MOVE)
-	cmd, _ = cmd.AddParams(fmt.Sprintf("%d:%d", fromStartPos, fromEndPos))
-	cmd, _ = cmd.AddParams(toPos)
+func (api *Impl) BatchMove(fromStartPos, fromEndPos, toPos int) error {
+	cmd := commands.NewSingleCommand(commands.MOVE).AddParams(fmt.Sprintf("%d:%d", fromStartPos, fromEndPos)).AddParams(toPos)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) ShuffleAll() error {
+func (api *Impl) ShuffleAll() error {
 	cmd := commands.NewSingleCommand(commands.SHUFFLE)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Shuffle(fromPos, toPos int) error {
-	cmd := commands.NewSingleCommand(commands.SHUFFLE)
-	cmd, _ = cmd.AddParams(fromPos)
-	cmd, _ = cmd.AddParams(toPos)
+func (api *Impl) Shuffle(fromPos, toPos int) error {
+	cmd := commands.NewSingleCommand(commands.SHUFFLE).AddParams(fromPos).AddParams(toPos)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }

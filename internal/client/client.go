@@ -3,8 +3,11 @@ package client
 import (
 	"context"
 	"errors"
+	"github.com/anpotashev/go-observer/pkg/observer"
 	"github.com/anpotashev/mpdgo/internal/commands"
-	"github.com/anpotashev/mpdgo/internal/mpdconnect"
+	"github.com/anpotashev/mpdgo/internal/pool"
+	"github.com/anpotashev/mpdgo/internal/pool/rw"
+	"github.com/rs/zerolog/log"
 	"sync"
 )
 
@@ -14,17 +17,19 @@ type MpdClient interface {
 	IsConnected() bool
 	SendCommand(command *commands.SingleCommand) ([]string, error)
 	SendBatchCommands(cmd []commands.BatchCommand) error
+	observer.Subscriber[string]
 }
 
 type MpdClientImpl struct {
 	host     string
 	port     uint16
 	password string
-	pool     mpdconnect.RWPool
+	pool     pool.RWPool
 	sync.Mutex
-	listeners mpdListeners
-	context   context.Context
-	cancel    context.CancelFunc
+	observer.Observer[string]
+	idleChannel chan string
+	context     context.Context
+	cancel      context.CancelFunc
 }
 
 func NewMpdClient(ctx context.Context, host string, port uint16, password string) (*MpdClientImpl, error) {
@@ -33,11 +38,12 @@ func NewMpdClient(ctx context.Context, host string, port uint16, password string
 		host:     host,
 		port:     port,
 		password: password,
-		pool:     nil,
+		Observer: observer.New[string](),
 	}, nil
 }
 
 func (m *MpdClientImpl) Connect() error {
+	log.Debug().Msg("connecting")
 	m.Lock()
 	defer m.Unlock()
 	if m.IsConnected() {
@@ -45,13 +51,15 @@ func (m *MpdClientImpl) Connect() error {
 	}
 	ctx, cancel := context.WithCancel(m.context)
 	m.cancel = cancel
-	pool, err := mpdconnect.NewPool(ctx, m.host, m.port, m.password)
+	m.idleChannel = make(chan string)
+	pool, err := pool.NewPool(ctx, m.host, m.port, m.password, m.idleChannel)
 	if err != nil {
 		cancel()
 		return ConnectionError
 	}
 	m.pool = pool
-	m.fireOnConnectEvent()
+	go m.startListeningIdleChannel()
+	m.Notify(OnConnect)
 	return nil
 }
 
@@ -63,7 +71,7 @@ func (m *MpdClientImpl) Disconnect() error {
 	}
 	go m.cancel()
 	m.pool = nil
-	m.fireOnDisconnectEvent()
+	m.Notify(OnDisconnect)
 	return nil
 }
 
@@ -76,8 +84,11 @@ func (m *MpdClientImpl) SendCommand(command *commands.SingleCommand) ([]string, 
 		return nil, NotConnected
 	}
 	result, err := m.pool.SendCommand(command)
+	log.Debug().Str("command", command.String()).Msg("sending command")
 	if err != nil {
-		if errors.Is(err, mpdconnect.ConnectionError) {
+		log.Debug().Msg("error!!!")
+		if errors.Is(err, rw.ServerError) {
+			log.Debug().Msg("disconnecting")
 			err := m.Disconnect()
 			if err != nil {
 				return nil, err
@@ -92,14 +103,14 @@ func (m *MpdClientImpl) SendCommand(command *commands.SingleCommand) ([]string, 
 func (m *MpdClientImpl) sendBatchCommand(command *commands.BatchCommand) error {
 	err := m.pool.SendBatchCommand(command)
 	if err != nil {
-		if errors.Is(err, mpdconnect.ConnectionError) {
+		if errors.Is(err, rw.ServerError) {
 			err := m.Disconnect()
 			if err != nil {
 				return err
 			}
 			return ConnectionError
 		}
-		return nil
+		return err
 	}
 	return nil
 }

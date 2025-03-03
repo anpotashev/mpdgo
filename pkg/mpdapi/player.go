@@ -15,46 +15,42 @@ type Player interface {
 	Seek(songPos, seekPos int) error
 }
 
-func (api *MpdApiImpl) Play() error {
+func (api *Impl) Play() error {
 	cmd := commands.NewSingleCommand(commands.PLAY)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Pause() error {
+func (api *Impl) Pause() error {
 	cmd := commands.NewSingleCommand(commands.PAUSE)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Stop() error {
+func (api *Impl) Stop() error {
 	cmd := commands.NewSingleCommand(commands.STOP)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Previous() error {
+func (api *Impl) Previous() error {
 	cmd := commands.NewSingleCommand(commands.PREV)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Next() error {
+func (api *Impl) Next() error {
 	cmd := commands.NewSingleCommand(commands.NEXT)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) PlayId(id int) error {
-	cmd := commands.NewSingleCommand(commands.PLAY)
-	cmd, _ = cmd.AddParams(id)
+func (api *Impl) PlayId(id int) error {
+	cmd := commands.NewSingleCommand(commands.PLAY).AddParams(id)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) PlayPos(pos int) error {
-	cmd := commands.NewSingleCommand(commands.PLAY_ID)
-	cmd, _ = cmd.AddParams(pos)
+func (api *Impl) PlayPos(pos int) error {
+	cmd := commands.NewSingleCommand(commands.PLAY_ID).AddParams(pos)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
 
-func (api *MpdApiImpl) Seek(songPos, seekPos int) error {
-	cmd := commands.NewSingleCommand(commands.SEEK)
-	cmd, _ = cmd.AddParams(songPos)
-	cmd, _ = cmd.AddParams(seekPos)
+func (api *Impl) Seek(songPos, seekPos int) error {
+	cmd := commands.NewSingleCommand(commands.SEEK).AddParams(songPos).AddParams(seekPos)
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
 }
