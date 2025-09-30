@@ -3,7 +3,7 @@ module github.com/anpotashev/mpdgo
 go 1.24.4
 
 require (
-	github.com/anpotashev/go-observer v0.0.0-20250216100338-b38af495ef22
+	github.com/anpotashev/go-observer v0.0.0-20250216101657-15d76d1a3eaa
 	github.com/bxcodec/faker/v4 v4.0.0-beta.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/stretchr/testify v1.11.1
@@ -22,5 +22,3 @@ require (
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/anpotashev/go-observer => ../go-observer
