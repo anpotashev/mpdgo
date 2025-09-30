@@ -10,24 +10,24 @@ type SingleCommand struct {
 	params  []Param
 }
 
-func (c *SingleCommand) String() string {
+func (c SingleCommand) String() string {
 	if len(c.params) == 0 {
 		return fmt.Sprintf("%s\n", c.command)
 	}
 	stringSlice := make([]string, len(c.params))
 	for i, param := range c.params {
-		stringSlice[i] = param.AsString()
+		stringSlice[i] = param.String()
 	}
 	return fmt.Sprintf("%s %s\n", c.command, strings.Join(stringSlice, " "))
 }
 
-func NewSingleCommand(command CommandType) *SingleCommand {
-	return &SingleCommand{
+func NewSingleCommand(command CommandType) SingleCommand {
+	return SingleCommand{
 		command: command.String(),
 	}
 }
 
-func (c *SingleCommand) AddParams(params ...any) *SingleCommand {
+func (c SingleCommand) AddParams(params ...any) SingleCommand {
 	for _, param := range params {
 		var p Param
 		switch v := param.(type) {

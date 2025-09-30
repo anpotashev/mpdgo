@@ -1,0 +1,33 @@
+// package dto.{{- .Notice }}
+package dto
+
+import "github.com/anpotashev/mpdgo/pkg/mpdapi"
+{{ range .StructInfos }}
+func Map{{ .Name }}(in mpdapi.{{ .Name }}) {{ .Name }} {
+	return {{ .Name }}{
+		{{- range .Fields }}
+		{{ .Name }}: in.{{ .Name }},
+		{{- end }}
+		{{- range .SliceFields }}
+		{{ .Name }}: func(items []mpdapi.{{ .Type }}) (result []{{ .Type }}) {
+        			for _, item := range items {
+        				result = append(result, Map{{ .Type }}(item))
+        			}
+        			return result
+        		}(in.{{ .Name }}),
+		{{- end }}
+		{{- range .StructFields }}
+		{{ .Name }}: Map{{ .Type }}(in.{{ .Name }}),
+		{{- end }}
+		{{- range .StructPtrFields }}
+		{{ .Name }}: func(in *mpdapi.{{ .Type }}) *{{ .Type }} {
+        			if in == nil {
+        				return nil
+        			}
+        			out := Map{{ .Type }}(*in)
+        			return &out
+        		}(in.{{ .Name }}),
+		{{- end }}
+	}
+}
+{{ end }}

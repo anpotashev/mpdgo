@@ -1,6 +1,7 @@
 package mpdapi
 
 import (
+	"context"
 	"github.com/patrickmn/go-cache"
 	"time"
 )
@@ -67,10 +68,15 @@ func newWithCache(api *Impl) MpdApi {
 //	}
 //}
 
-func (api *ImplWithCache) Tree() (TreeItem, error) {
+func (api *ImplWithCache) WithRequestContext(ctx context.Context) MpdApi {
+	mpdapi := api.MpdApi.WithRequestContext(ctx)
+	return &ImplWithCache{MpdApi: mpdapi, cache: api.cache}
+}
+
+func (api *ImplWithCache) Tree() (*DirectoryItem, error) {
 	value, found := api.cache.Get(treeCN)
 	if found {
-		return value.(TreeItem), nil
+		return value.(*DirectoryItem), nil
 	}
 	result, err := api.MpdApi.Tree()
 	if err != nil {

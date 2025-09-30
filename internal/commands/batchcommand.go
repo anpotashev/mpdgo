@@ -6,12 +6,10 @@ import (
 )
 
 type BatchCommand struct {
-	commands []*SingleCommand
+	commands []SingleCommand
 }
 
-const maxCommandsCount = 100
-
-func NewBatchCommands(cmds []*SingleCommand) []BatchCommand {
+func NewBatchCommands(cmds []SingleCommand, maxCommandsCount int) []BatchCommand {
 	var result = make([]BatchCommand, 0)
 	for len(cmds) > 0 {
 		batchSize := min(len(cmds), maxCommandsCount)

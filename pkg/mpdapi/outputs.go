@@ -12,24 +12,24 @@ type Outputs interface {
 }
 
 type Output struct {
-	Id      int    `mpd_prefix:"outputid"`
+	Id      int    `mpd_prefix:"outputid" is_new_element_prefix:"true"`
 	Name    string `mpd_prefix:"outputname"`
 	Enabled bool   `mpd_prefix:"outputenabled"`
 }
 
 func (api *Impl) EnableOutput(id int) error {
 	cmd := commands.NewSingleCommand(commands.ENABLE_OUTPUT).AddParams(id)
-	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
+	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendSingleCommand(api.requestContext, cmd))
 }
 
 func (api *Impl) DisableOutput(id int) error {
 	cmd := commands.NewSingleCommand(commands.DISABLE_OUTPUT).AddParams(id)
-	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendCommand(cmd))
+	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendSingleCommand(api.requestContext, cmd))
 }
 
 func (api *Impl) ListOutputs() ([]Output, error) {
 	cmd := commands.NewSingleCommand(commands.OUTPUTS)
-	list, err := api.mpdClient.SendCommand(cmd)
+	list, err := api.mpdClient.SendSingleCommand(api.requestContext, cmd)
 	if err != nil {
 		return nil, wrapPkgError(err)
 	}

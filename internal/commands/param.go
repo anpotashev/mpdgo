@@ -6,12 +6,12 @@ import (
 )
 
 type Param interface {
-	AsString() string
+	fmt.Stringer
 }
 
 type StringParam string
 
-func (p StringParam) AsString() string {
+func (p StringParam) String() string {
 	escapeValue := strings.ReplaceAll(string(p), "\\", "\\\\")
 	escapeValue = strings.ReplaceAll(escapeValue, "\"", "\\\"")
 	return fmt.Sprintf("\"%s\"", escapeValue)
@@ -19,13 +19,13 @@ func (p StringParam) AsString() string {
 
 type IntParam int
 
-func (p IntParam) AsString() string {
+func (p IntParam) String() string {
 	return fmt.Sprintf("%d", p)
 }
 
 type BoolParam bool
 
-func (p BoolParam) AsString() string {
+func (p BoolParam) String() string {
 	if p {
 		return "\"1\""
 	}

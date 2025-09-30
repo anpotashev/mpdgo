@@ -1,15 +1,16 @@
 package mpdapi
 
 import (
-	"fmt"
-	"github.com/anpotashev/mpdgo/internal/client"
+	"github.com/anpotashev/mpdgo/internal/logger"
+	"github.com/anpotashev/mpdgo/internal/mpdclient"
 	"time"
 )
 
 type MpdEventType uint8
 
 const (
-	ON_CONNECT MpdEventType = iota
+	UNKNOWN MpdEventType = iota
+	ON_CONNECT
 	ON_DISCONNECT
 	ON_DATABASE_CHANGED
 	ON_UPDATE_CHANGED
@@ -26,20 +27,20 @@ const (
 )
 
 var eventsMap = map[string]MpdEventType{
-	client.OnConnect:    ON_CONNECT,
-	client.OnDisconnect: ON_DISCONNECT,
-	"database":          ON_DATABASE_CHANGED,
-	"update":            ON_UPDATE_CHANGED,
-	"stored_playlist":   ON_STORED_PLAYLIST_CHANGED,
-	"playlist":          ON_PLAYLIST_CHANGED,
-	"player":            ON_PLAYER_CHANGED,
-	"mixer":             ON_MIXER_CHANGED,
-	"output":            ON_OUTPUT_CHANGED,
-	"options":           ON_OPTIONS_CHANGED,
-	"partition":         ON_PARTITION_CHANGED,
-	"sticker":           ON_STICKER_CHANGED,
-	"subscription":      ON_SUBSCRIPTION_CHANGED,
-	"message":           ON_MESSAGE_CHANGED,
+	mpdclient.OnConnect:    ON_CONNECT,
+	mpdclient.OnDisconnect: ON_DISCONNECT,
+	"database":             ON_DATABASE_CHANGED,
+	"update":               ON_UPDATE_CHANGED,
+	"stored_playlist":      ON_STORED_PLAYLIST_CHANGED,
+	"playlist":             ON_PLAYLIST_CHANGED,
+	"player":               ON_PLAYER_CHANGED,
+	"mixer":                ON_MIXER_CHANGED,
+	"output":               ON_OUTPUT_CHANGED,
+	"options":              ON_OPTIONS_CHANGED,
+	"partition":            ON_PARTITION_CHANGED,
+	"sticker":              ON_STICKER_CHANGED,
+	"subscription":         ON_SUBSCRIPTION_CHANGED,
+	"message":              ON_MESSAGE_CHANGED,
 }
 
 //func (api *Impl) Subscribe(timeout time.Duration) chan MpdEventType {
@@ -56,8 +57,11 @@ func (api *Impl) initObserver() {
 		for {
 			select {
 			case event := <-ch:
+				logger.Info("got event", "event", event)
 				eventType := getEventType(event)
-				if eventType != 0 {
+				logger.Info("got event", "eventType", eventType)
+				if eventType != UNKNOWN {
+					logger.Info("Notifying about event", "eventType", eventType)
 					api.Notify(eventType)
 				}
 			case <-api.ctx.Done():
@@ -68,9 +72,9 @@ func (api *Impl) initObserver() {
 }
 
 func getEventType(event string) MpdEventType {
-	fmt.Printf("Event %s\n", event)
+	logger.Info("Got event", "event type", event)
 	if result, ok := eventsMap[event]; ok {
 		return result
 	}
-	return 0
+	return UNKNOWN
 }
