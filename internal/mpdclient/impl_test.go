@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/anpotashev/go-observer/pkg/observer"
 	"github.com/anpotashev/mpdgo/internal/commands"
 	"github.com/anpotashev/mpdgo/internal/mpdrwpool"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 // implementation newMpdRWPoolFactory
@@ -57,7 +58,7 @@ func TestImpl_Connect(t *testing.T) {
 		// checking connect call, when already connected
 		err := client.connect(context.Background(), newMockMpdRWPoolFactory)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, AlreadyConnected)
+		assert.ErrorIs(t, err, ErrAlreadyConnected)
 		client.cancelFunc()
 	})
 	t.Run("error on creating mpdRWPool", func(t *testing.T) {
@@ -68,7 +69,7 @@ func TestImpl_Connect(t *testing.T) {
 		}
 		err := pool.connect(requestContext, f)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, ConnectionError)
+		assert.ErrorIs(t, err, ErrOnConnection)
 		assert.Nil(t, pool.pool)
 	})
 }
@@ -81,7 +82,7 @@ func TestImpl_Disconnect(t *testing.T) {
 		assert.NoError(t, err)
 		err = client.Disconnect(context.Background())
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, NotConnected)
+		assert.ErrorIs(t, err, ErrNotConnected)
 	})
 }
 
@@ -111,7 +112,8 @@ func TestImpl_Events(t *testing.T) {
 		case <-time.After(time.Millisecond * 100):
 			t.Errorf("%s event was not received", OnConnect)
 		}
-		idleEvents := []string{"aaa", "bbb"}
+		expectedIdleEvents := []string{"aaa", "bbb"}
+		idleEvents := []string{"changed: aaa", "changed: bbb"}
 		client.pool.Notify(idleEvents)
 		var receivedIdleEvent []string
 		for range idleEvents {
@@ -122,7 +124,7 @@ func TestImpl_Events(t *testing.T) {
 				t.Error("expected IDLE event was not received")
 			}
 		}
-		assert.ElementsMatch(t, idleEvents, receivedIdleEvent)
+		assert.ElementsMatch(t, expectedIdleEvents, receivedIdleEvent)
 		client.Disconnect(context.Background())
 		select {
 		case event := <-subscribeChan:
@@ -157,7 +159,7 @@ func TestImpl_SendSingleCommand(t *testing.T) {
 		pool.On("SendSingleCommand").Return(nil, fmt.Errorf("error"))
 		actual, err := client.SendSingleCommand(context.Background(), cmd)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, CommandSendError)
+		assert.ErrorIs(t, err, ErrSendCommand)
 		assert.Nil(t, actual)
 	})
 	t.Run("send single command when not connected", func(t *testing.T) {
@@ -165,7 +167,7 @@ func TestImpl_SendSingleCommand(t *testing.T) {
 		cmd := commands.NewSingleCommand(commands.PLAY)
 		actual, err := client.SendSingleCommand(context.Background(), cmd)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, NotConnected)
+		assert.ErrorIs(t, err, ErrNotConnected)
 		assert.Nil(t, actual)
 	})
 }
@@ -193,7 +195,7 @@ func TestImpl_SendBatchCommand(t *testing.T) {
 		pool.On("SendBatchCommand").Return(fmt.Errorf("error"))
 		err := client.SendBatchCommand(context.Background(), cmds)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, CommandSendError)
+		assert.ErrorIs(t, err, ErrSendCommand)
 		client.cancelFunc()
 	})
 	t.Run("send batch command when not connected", func(t *testing.T) {
@@ -203,7 +205,7 @@ func TestImpl_SendBatchCommand(t *testing.T) {
 			commands.NewSingleCommand(commands.STOP)}
 		err := client.SendBatchCommand(context.Background(), cmds)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, NotConnected)
+		assert.ErrorIs(t, err, ErrNotConnected)
 	})
 }
 

@@ -12,15 +12,15 @@ type MpdClient interface {
 	// The requestContext is used for logging.
 	//
 	// Can return the following errors:
-	// - ConnectionError
-	// - AlreadyConnected
+	// - ErrOnConnection
+	// - ErrAlreadyConnected
 	Connect(requestContext context.Context) error
 	// Disconnect disconnects from the MPD server.
 	//
 	// The requestContext is used for logging.
 	//
 	// Can return the following errors:
-	// - NotConnected
+	// - ErrNotConnected
 	Disconnect(requestContext context.Context) error
 	// IsConnected reports whether the client is currently connected.
 	//
@@ -32,16 +32,16 @@ type MpdClient interface {
 	// returns a slice of strings containg the raw response from the MPD server
 	//
 	// Can return the following errors:
-	// - NotConnected
-	// - CommandSendError
+	// - ErrNotConnected
+	// - ErrSendCommand
 	SendSingleCommand(requestContext context.Context, command commands.SingleCommand) ([]string, error)
 	// SendBatchCommand sends a batch command to the MPD server
 	//
 	// The requestContext is used for logging.
 	//
 	// Can return the following errors:
-	// - NotConnected
-	// - CommandSendError
+	// - ErrNotConnected
+	// - ErrSendCommand
 	SendBatchCommand(requestContext context.Context, cmd []commands.SingleCommand) error
 	observer.Observer[string]
 }

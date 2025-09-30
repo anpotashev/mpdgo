@@ -3,10 +3,11 @@ package parser
 import (
 	"errors"
 	"fmt"
-	"github.com/bxcodec/faker/v4"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/bxcodec/faker/v4"
+	"github.com/stretchr/testify/assert"
 )
 
 type ParsedType struct {
@@ -26,19 +27,6 @@ type ParsedType struct {
 	BoolPtrValueNilValue   *bool      `mpd_prefix:"bool_ptr_nil_field"`
 	DatePtrFieldNilValue   *time.Time `mpd_prefix:"date_ptr_nil_field"`
 }
-
-const elementTemplate = `
-int_field: {{.IntField}}
-uint16_field: {{.Uint16Field}}
-string_field: {{.StringField}}
-bool_field: {{.BoolValue}}
-date_field: {{.DateField}}
-int_ptr_field: {{.IntPtrField}}
-uint16_ptr_field: {{.Uint16PtrField}}
-string_ptr_field: {{.StringPtrField}}
-bool_ptr_field: {{.BoolPtrValue}}
-date_ptr_field: {{.DatePtrField}}
-`
 
 func TestParseSingleValue(t *testing.T) {
 	t.Run("successful parsing to struct with all supported field types", func(t *testing.T) {
@@ -74,7 +62,7 @@ func TestParseSingleValue(t *testing.T) {
 		lines := []string{"field: asdf"}
 		_, err := ParseSingleValue[parsedType](lines)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, FieldParsingError))
+		assert.True(t, errors.Is(err, ErrParsingField))
 	})
 	t.Run("error parsing value for *int field", func(t *testing.T) {
 		type parsedType struct {
@@ -147,7 +135,7 @@ func TestParseSingleValue(t *testing.T) {
 		lines := []string{"field: 111"}
 		_, err := ParseSingleValue[parsedType](lines)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, UnsupportedFieldType))
+		assert.True(t, errors.Is(err, ErrUnsupportedFieldType))
 	})
 	t.Run("error parsing with unsupported field type (ptr)", func(t *testing.T) {
 		type parsedType struct {
@@ -156,14 +144,14 @@ func TestParseSingleValue(t *testing.T) {
 		lines := []string{"field: 111"}
 		_, err := ParseSingleValue[parsedType](lines)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, UnsupportedFieldType))
+		assert.True(t, errors.Is(err, ErrUnsupportedFieldType))
 	})
 	t.Run("wrong target type", func(t *testing.T) {
 		type parsedType interface{}
 		var lines []string
 		_, err := ParseSingleValue[parsedType](lines)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, TargetTypeMustBeStructError))
+		assert.True(t, errors.Is(err, ErrTargetTypeMustBeStruct))
 	})
 }
 
@@ -204,7 +192,9 @@ func TestParseMultiValue(t *testing.T) {
 	})
 	t.Run("No field in the target struct is marked with is_new_element_prefix:\"true\"", func(t *testing.T) {
 		type targetStruct struct {
+			//lint:ignore U1000 ignore
 			fieldOne string `mpd_prefix:"string_field1"`
+			//lint:ignore U1000 ignore
 			fieldTwo string `mpd_prefix:"string_field2"`
 		}
 		list := []string{
@@ -215,14 +205,14 @@ func TestParseMultiValue(t *testing.T) {
 		}
 		_, err := ParseMultiValue[targetStruct](list)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, NoFieldMarkedAsNewElementError))
+		assert.True(t, errors.Is(err, ErrNoFieldMarkedAsNewElement))
 	})
 	t.Run("wrong target type", func(t *testing.T) {
 		type parsedType interface{}
 		var lines []string
 		_, err := ParseMultiValue[parsedType](lines)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, TargetTypeMustBeStructError))
+		assert.True(t, errors.Is(err, ErrTargetTypeMustBeStruct))
 	})
 	t.Run("error parsing with unsupported field type", func(t *testing.T) {
 		type parsedType struct {
@@ -231,7 +221,7 @@ func TestParseMultiValue(t *testing.T) {
 		lines := []string{"field: 100"}
 		_, err := ParseMultiValue[parsedType](lines)
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, UnsupportedFieldType))
+		assert.True(t, errors.Is(err, ErrUnsupportedFieldType))
 	})
 
 }

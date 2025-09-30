@@ -1,3 +1,39 @@
-/*.iml
-/.idea/
-/cover.txt
+# Test cover results
+cover.txt
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Build directories
+/bin/
+/dist/
+/build/
+
+# IDE/editor configs
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# Vendor directory
+vendor/
+
+# OS-specific
+.DS_Store
+Thumbs.db

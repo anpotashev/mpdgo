@@ -5,11 +5,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/anpotashev/mpdgo/internal/commands"
-	log "github.com/anpotashev/mpdgo/internal/logger"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/anpotashev/mpdgo/internal/commands"
+	log "github.com/anpotashev/mpdgo/internal/logger"
 )
 
 type Impl struct {
@@ -34,7 +35,7 @@ func newMpdRW(requestContext, ctx context.Context, dialer Dialer, password strin
 	log.DebugContext(requestContext, "Dialing")
 	conn, err := dialer()
 	if err != nil {
-		return nil, errors.Join(IOError, err)
+		return nil, errors.Join(ErrIO, err)
 	}
 	log.DebugContext(requestContext, "Creating reader and writer")
 	r := bufio.NewReader(conn)
@@ -70,17 +71,18 @@ func (m *Impl) SendIdleCommand() ([]string, error) {
 	log.Debug("Writing the command")
 	_, err := m.rw.WriteString(command.String())
 	if err != nil {
-		return nil, errors.Join(err, IOError)
+		return nil, errors.Join(err, ErrIO)
 	}
 	log.Debug("Flushing the writer")
 	err = m.rw.Flush()
 	if err != nil {
-		return nil, errors.Join(err, IOError)
+		return nil, errors.Join(err, ErrIO)
 	}
 	log.Debug("Creating answer and error channels")
 	answerChan := make(chan []string)
 	errorChan := make(chan error)
 	log.Debug("Starting a goroutine that reads answer")
+	//lint:ignore SA1012 ignore
 	go m.readAnswer(nil, answerChan, errorChan, nil)
 	select {
 	case answer := <-answerChan:
@@ -106,12 +108,12 @@ func (m *Impl) sendCommand(requestContext context.Context, command commands.MpdC
 	log.DebugContext(requestContext, "Writing the command to writer")
 	_, err := m.rw.WriteString(command.String())
 	if err != nil {
-		return nil, errors.Join(IOError, err)
+		return nil, errors.Join(ErrIO, err)
 	}
 	log.DebugContext(requestContext, "Flushing the writer")
 	err = m.rw.Flush()
 	if err != nil {
-		return nil, errors.Join(IOError, err)
+		return nil, errors.Join(ErrIO, err)
 	}
 	log.DebugContext(requestContext, "Waiting the answer")
 	return m.readAnswerWithTimeout(requestContext)
@@ -133,7 +135,7 @@ func (m *Impl) readAnswerWithTimeout(requestContext context.Context) ([]string, 
 		log.DebugContext(requestContext, "Received data from the error channel", "err", err)
 		return nil, err
 	case <-timer.C:
-		return nil, errors.Join(IOError, fmt.Errorf("timeout reading answer"))
+		return nil, errors.Join(ErrIO, fmt.Errorf("timeout reading answer"))
 	}
 }
 
@@ -146,7 +148,7 @@ func (m *Impl) readAnswer(requestContext context.Context, readChan chan []string
 		line, err := m.rw.ReadString('\n')
 		if err != nil {
 			select {
-			case errorChan <- IOError:
+			case errorChan <- ErrIO:
 			default: // non-blocking send
 			}
 			return

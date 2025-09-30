@@ -13,7 +13,7 @@ type MpdRWPool interface {
 	// returns a slice of strings containing the raw response from the MPD server
 	//
 	// Can return the following errors:
-	// - SendCommandError
+	// - ErrSendingCommand
 	SendSingleCommand(requestContext context.Context, command commands.SingleCommand) ([]string, error)
 
 	// SendBatchCommand sends a batch command to the MPD server
@@ -21,7 +21,7 @@ type MpdRWPool interface {
 	// The requestContext is used for logging.
 	//
 	// Can return the following errors:
-	// - SendCommandError
+	// - ErrSendingCommand
 	SendBatchCommand(requestContext context.Context, command commands.BatchCommand) error
 	observer.Observer[[]string]
 }

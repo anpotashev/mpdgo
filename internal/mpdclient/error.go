@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	NotConnected     = fmt.Errorf("not connected")
-	AlreadyConnected = fmt.Errorf("already connected")
-	ConnectionError  = fmt.Errorf("connection error")
-	CommandSendError = fmt.Errorf("command send error")
+	ErrNotConnected     = fmt.Errorf("not connected")
+	ErrAlreadyConnected = fmt.Errorf("already connected")
+	ErrOnConnection     = fmt.Errorf("connection error")
+	ErrSendCommand      = fmt.Errorf("command send error")
 )

@@ -3,12 +3,13 @@ package mpdclient
 import (
 	"context"
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/anpotashev/go-observer/pkg/observer"
 	"github.com/anpotashev/mpdgo/internal/commands"
 	log "github.com/anpotashev/mpdgo/internal/logger"
 	"github.com/anpotashev/mpdgo/internal/mpdrwpool"
-	"sync"
-	"time"
 )
 
 type config struct {
@@ -82,18 +83,19 @@ func (m *Impl) connect(requestContext context.Context, newMpdRWPoolFactoryFunc n
 	}()
 	if m.pool != nil {
 		log.DebugContext(requestContext, "Already connected")
-		return AlreadyConnected
+		return ErrAlreadyConnected
 	}
 	log.DebugContext(requestContext, "Creating a cancel context")
 	ctx, cancel := context.WithCancel(m.ctx)
 	log.DebugContext(requestContext, "Creating an onDisconnect function")
+	//lint:ignore SA1012 ignore
 	onDisconnect := func() { m.Disconnect(nil) }
 	log.DebugContext(requestContext, "Creating an mpdRWPool")
 	pool, err := newMpdRWPoolFactoryFunc(requestContext, ctx, onDisconnect)
 	if err != nil {
 		log.ErrorContext(requestContext, "Error creating new mpd rw pool", "err", err)
 		cancel()
-		return errors.Join(ConnectionError, err)
+		return errors.Join(ErrOnConnection, err)
 	}
 	log.DebugContext(requestContext, "pool successfully created")
 	log.DebugContext(requestContext, "Subscribing to IDLE events")
@@ -103,7 +105,7 @@ func (m *Impl) connect(requestContext context.Context, newMpdRWPoolFactoryFunc n
 			select {
 			case idleEvents := <-subscribe:
 				for _, event := range idleEvents {
-					if event[:9] == "changed: " {
+					if len(event) > 9 && event[:9] == "changed: " {
 						m.Notify(event[9:])
 					}
 				}
@@ -124,7 +126,7 @@ func (m *Impl) Disconnect(requestContext context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.pool == nil {
-		return NotConnected
+		return ErrNotConnected
 	}
 	m.cancelFunc()
 	m.pool = nil
@@ -145,11 +147,11 @@ func (m *Impl) SendSingleCommand(requestContext context.Context, command command
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.pool == nil {
-		return nil, NotConnected
+		return nil, ErrNotConnected
 	}
 	response, err := m.pool.SendSingleCommand(requestContext, command)
 	if err != nil {
-		return nil, errors.Join(CommandSendError, err)
+		return nil, errors.Join(ErrSendCommand, err)
 	}
 	return response, nil
 }
@@ -159,12 +161,12 @@ func (m *Impl) SendBatchCommand(requestContext context.Context, cmds []commands.
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.pool == nil {
-		return NotConnected
+		return ErrNotConnected
 	}
 	for _, batchCommand := range commands.NewBatchCommands(cmds, int(m.config.maxBatchCommandLength)) {
 		err := m.pool.SendBatchCommand(requestContext, batchCommand)
 		if err != nil {
-			return errors.Join(err, CommandSendError)
+			return errors.Join(err, ErrSendCommand)
 		}
 	}
 	return nil

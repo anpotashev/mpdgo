@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	ACKError = fmt.Errorf("ACK error")
-	IOError  = errors.New("IO error on sending command")
+	ErrACK = fmt.Errorf("ACK error")
+	ErrIO  = errors.New("IO error on sending command")
 )
 
 func parseACKAnswer(answer string) error {
@@ -17,7 +17,7 @@ func parseACKAnswer(answer string) error {
 	if len(matches) == 3 {
 		command := matches[1]
 		errorMessage := matches[2]
-		return errors.Join(fmt.Errorf("ACK error on sending command %s: %s", command, errorMessage), ACKError)
+		return errors.Join(fmt.Errorf("ACK error on sending command %s: %s", command, errorMessage), ErrACK)
 	}
-	return errors.Join(fmt.Errorf("unexpected answer format: %s", answer), ACKError)
+	return errors.Join(fmt.Errorf("unexpected answer format: %s", answer), ErrACK)
 }

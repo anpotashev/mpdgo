@@ -3,11 +3,12 @@ package mpdrw
 import (
 	"context"
 	"fmt"
-	"github.com/anpotashev/mpdgo/internal/commands"
-	"github.com/stretchr/testify/assert"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/anpotashev/mpdgo/internal/commands"
+	"github.com/stretchr/testify/assert"
 )
 
 var defaultConnectParams = struct {
@@ -48,11 +49,10 @@ func TestNewMpdRW(t *testing.T) {
 			in:  make(chan byte, 1024),
 			out: make(chan byte, 1024),
 		}
-		var mockDialer Dialer
-		mockDialer = func() (net.Conn, error) { return mockConn, nil }
+		var mockDialer Dialer = func() (net.Conn, error) { return mockConn, nil }
 		rw, err := mockDialer.NewMpdRW(defaultConnectParams.requestContext, defaultConnectParams.ctx, defaultConnectParams.password, defaultConnectParams.readTimeout)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, IOError)
+		assert.ErrorIs(t, err, ErrIO)
 		assert.Nil(t, rw)
 		assert.Empty(t, mockConn.readAllFromOutChan())
 	})
@@ -62,11 +62,10 @@ func TestNewMpdRW(t *testing.T) {
 			out: make(chan byte, 1024),
 		}
 		mockConn.mockOnRead("ACK error")
-		var mockDialer Dialer
-		mockDialer = func() (net.Conn, error) { return mockConn, nil }
+		var mockDialer Dialer = func() (net.Conn, error) { return mockConn, nil }
 		rw, err := mockDialer.NewMpdRW(defaultConnectParams.requestContext, defaultConnectParams.ctx, defaultConnectParams.password, defaultConnectParams.readTimeout)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, ACKError)
+		assert.ErrorIs(t, err, ErrACK)
 		assert.Nil(t, rw)
 		assert.Empty(t, mockConn.readAllFromOutChan())
 	})
@@ -80,11 +79,10 @@ func TestNewMpdRW(t *testing.T) {
 			"ACK incorrect password",
 		}
 		mockConn.mockOnRead(responses...)
-		var mockDialer Dialer
-		mockDialer = func() (net.Conn, error) { return mockConn, nil }
+		var mockDialer Dialer = func() (net.Conn, error) { return mockConn, nil }
 		rw, err := mockDialer.NewMpdRW(defaultConnectParams.requestContext, defaultConnectParams.ctx, defaultConnectParams.password, defaultConnectParams.readTimeout)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, ACKError)
+		assert.ErrorIs(t, err, ErrACK)
 		assert.Nil(t, rw)
 		expectedDataSentToWriter := fmt.Sprintf("password \"%s\"\n", defaultConnectParams.password)
 		assert.Equal(t, expectedDataSentToWriter, mockConn.readAllFromOutChan())
@@ -115,7 +113,7 @@ func TestImpl_SendSingleCommand(t *testing.T) {
 		cmd := commands.NewSingleCommand(commands.PING)
 		response, err := rw.SendSingleCommand(defaultConnectParams.requestContext, cmd)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, ACKError)
+		assert.ErrorIs(t, err, ErrACK)
 		assert.Nil(t, response)
 		assert.Equal(t, cmd.String(), mockConn.readAllFromOutChan())
 	})
@@ -129,7 +127,7 @@ func TestImpl_SendSingleCommand(t *testing.T) {
 		cmd := commands.NewSingleCommand(commands.PING)
 		response, err := rw.SendSingleCommand(defaultConnectParams.requestContext, cmd)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, IOError)
+		assert.ErrorIs(t, err, ErrIO)
 		assert.Nil(t, response)
 		assert.Equal(t, cmd.String(), mockConn.readAllFromOutChan())
 	})
@@ -159,7 +157,7 @@ func TestImpl_SendMultipleCommands(t *testing.T) {
 		batchCommand := prepareBatchCommand()
 		err := rw.SendBatchCommand(defaultConnectParams.requestContext, batchCommand)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, ACKError)
+		assert.ErrorIs(t, err, ErrACK)
 		assert.Equal(t, batchCommand.String(), mockConn.readAllFromOutChan())
 	})
 	t.Run("timeout waiting response", func(t *testing.T) {
@@ -172,7 +170,7 @@ func TestImpl_SendMultipleCommands(t *testing.T) {
 		batchCommand := prepareBatchCommand()
 		err := rw.SendBatchCommand(defaultConnectParams.requestContext, batchCommand)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, IOError)
+		assert.ErrorIs(t, err, ErrIO)
 		assert.Equal(t, batchCommand.String(), mockConn.readAllFromOutChan())
 	})
 }
@@ -264,7 +262,7 @@ func TestImpl_SendIdleCommand(t *testing.T) {
 			break
 		}
 		assert.NotNil(t, idleError)
-		assert.ErrorIs(t, idleError, IOError)
+		assert.ErrorIs(t, idleError, ErrIO)
 		assert.Nil(t, idleEvents)
 		assert.Equal(t, mockConn.readAllFromOutChan(), commands.NewSingleCommand(commands.IDLE).String())
 	})
@@ -300,7 +298,7 @@ func TestImpl_SendIdleCommand(t *testing.T) {
 			break
 		}
 		assert.Error(t, idleError)
-		assert.ErrorIs(t, idleError, ACKError)
+		assert.ErrorIs(t, idleError, ErrACK)
 		assert.Nil(t, idleEvents)
 		assert.Equal(t, mockConn.readAllFromOutChan(), commands.NewSingleCommand(commands.IDLE).String())
 	})
@@ -312,8 +310,7 @@ func happyPathConnect(t *testing.T, mockConn *MockConn) MpdRW {
 		"OK",
 	}
 	mockConn.mockOnRead(responses...)
-	var mockDialer Dialer
-	mockDialer = func() (net.Conn, error) { return mockConn, nil }
+	var mockDialer Dialer = func() (net.Conn, error) { return mockConn, nil }
 	rw, err := mockDialer.NewMpdRW(defaultConnectParams.requestContext, defaultConnectParams.ctx, defaultConnectParams.password, defaultConnectParams.readTimeout)
 	assert.NoError(t, err)
 	assert.NotNil(t, rw)

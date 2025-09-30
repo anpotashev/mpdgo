@@ -66,7 +66,7 @@ func TestNewMpdRWPool(t *testing.T) {
 		onDisconnect := func() {}
 		pool, err := newMpdRWPool(mpdRWFactoryFunc, defaultConnectParams.requestContext, defaultConnectParams.ctx, defaultConnectParams.poolSize, defaultConnectParams.pingInterval, onDisconnect)
 		assert.NotNil(t, err)
-		assert.ErrorIs(t, err, ConnectionError)
+		assert.ErrorIs(t, err, ErrConnection)
 		assert.Nil(t, pool)
 	})
 	t.Run("error when creating rw (non idleRW)", func(t *testing.T) {
@@ -81,7 +81,7 @@ func TestNewMpdRWPool(t *testing.T) {
 		onDisconnect := func() {}
 		pool, err := newMpdRWPool(mpdRWFactoryFunc, defaultConnectParams.requestContext, defaultConnectParams.ctx, defaultConnectParams.poolSize, defaultConnectParams.pingInterval, onDisconnect)
 		assert.NotNil(t, err)
-		assert.ErrorIs(t, err, ConnectionError)
+		assert.ErrorIs(t, err, ErrConnection)
 		assert.Nil(t, pool)
 	})
 }
@@ -160,7 +160,7 @@ func TestImpl_VerifyPingGoroutine(t *testing.T) {
 		pingCmd := commands.NewSingleCommand(commands.PING)
 		for _, rw := range rws[1:] {
 			rw.On("SendSingleCommand", nil, pingCmd).
-				Return(nil, mpdrw.IOError)
+				Return(nil, mpdrw.ErrIO)
 		}
 		// Sleeping for longer than the ping interval
 		time.Sleep(defaultConnectParams.pingInterval + (defaultConnectParams.pingInterval / 10))
@@ -238,7 +238,7 @@ func TestImpl_SendSingleCommand(t *testing.T) {
 		cmd := commands.NewSingleCommand(commands.LISTALL)
 		for _, rw := range rws[1:] {
 			rw.On("SendSingleCommand", defaultConnectParams.requestContext, cmd).
-				Return(nil, mpdrw.ACKError)
+				Return(nil, mpdrw.ErrACK)
 		}
 		actualResponse, err := pool.SendSingleCommand(defaultConnectParams.requestContext, cmd)
 		assert.Error(t, err)
@@ -279,7 +279,7 @@ func TestImpl_SendSingleCommand(t *testing.T) {
 		cmd := commands.NewSingleCommand(commands.LISTALL)
 		for _, rw := range rws[1:] {
 			rw.On("SendSingleCommand", defaultConnectParams.requestContext, cmd).
-				Return(nil, mpdrw.IOError)
+				Return(nil, mpdrw.ErrIO)
 		}
 		actualResponse, err := pool.SendSingleCommand(defaultConnectParams.requestContext, cmd)
 		assert.Error(t, err)
@@ -365,11 +365,11 @@ func TestImpl_SendBatchCommand(t *testing.T) {
 			}, 100)[0]
 		for _, rw := range rws[1:] {
 			rw.On("SendBatchCommand", defaultConnectParams.requestContext, cmds).
-				Return(mpdrw.ACKError)
+				Return(mpdrw.ErrACK)
 		}
 		err = pool.SendBatchCommand(defaultConnectParams.requestContext, cmds)
 		assert.NotNil(t, err)
-		assert.ErrorIs(t, err, SendCommandError)
+		assert.ErrorIs(t, err, ErrSendingCommand)
 		// Verifying that onDisconnect was not called.
 		select {
 		case <-onDisconnectCalled:
@@ -411,11 +411,11 @@ func TestImpl_SendBatchCommand(t *testing.T) {
 			}, 100)[0]
 		for _, rw := range rws[1:] {
 			rw.On("SendBatchCommand", defaultConnectParams.requestContext, cmds).
-				Return(mpdrw.IOError)
+				Return(mpdrw.ErrIO)
 		}
 		err = pool.SendBatchCommand(defaultConnectParams.requestContext, cmds)
 		assert.NotNil(t, err)
-		assert.ErrorIs(t, err, SendCommandError)
+		assert.ErrorIs(t, err, ErrSendingCommand)
 		// Verifying that onDisconnect was not called.
 		select {
 		case <-onDisconnectCalled:
@@ -463,7 +463,7 @@ func TestImpl_IdleListener(t *testing.T) {
 
 		pool.cancel()
 	})
-	t.Run("received IOError in IDLE listening", func(t *testing.T) {
+	t.Run("received ErrIO in IDLE listening", func(t *testing.T) {
 		// Creating an mpdRW slice
 		rws := make([]*mockMpdRW, defaultConnectParams.poolSize+1)
 		for i := range rws {
@@ -473,7 +473,7 @@ func TestImpl_IdleListener(t *testing.T) {
 		// The first element of the slice is idleRw. Mocking its behavior.
 		rws[0].On("SendIdleCommand").Run(func(args mock.Arguments) {
 			<-idleChan
-		}).Return(nil, mpdrw.IOError)
+		}).Return(nil, mpdrw.ErrIO)
 		// Creating a mpdRWFactoryFunction
 		mpdRWCounter := -1
 		f := func() (mpdrw.MpdRW, error) {

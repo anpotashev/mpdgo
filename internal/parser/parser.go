@@ -87,7 +87,7 @@ func parseLineAndSetFieldValue(fields map[string]reflect.StructField, targetElem
 				}
 				fieldVal.Set(reflect.ValueOf(&parsedTime))
 			default:
-				return UnsupportedFieldType
+				return ErrUnsupportedFieldType
 			}
 		case reflect.String:
 			fieldVal.SetString(value)
@@ -122,7 +122,7 @@ func parseLineAndSetFieldValue(fields map[string]reflect.StructField, targetElem
 				fieldVal.Set(reflect.ValueOf(parsedTime))
 			}
 		default:
-			return UnsupportedFieldType
+			return ErrUnsupportedFieldType
 		}
 	}
 	return nil
@@ -135,7 +135,7 @@ func parseLineAndSetFieldValue(fields map[string]reflect.StructField, targetElem
 func ParseSingleValue[T any](mpdAnswer []string) (T, error) {
 	val := reflect.ValueOf(new(T))
 	if val.Elem().Kind() != reflect.Struct {
-		return *new(T), TargetTypeMustBeStructError
+		return *new(T), ErrTargetTypeMustBeStruct
 	}
 	typ := val.Elem().Type()
 	fields := getPrefixFieldMap(typ)
@@ -162,14 +162,14 @@ func ParseSingleValue[T any](mpdAnswer []string) (T, error) {
 func ParseMultiValue[T any](mpdAnswer []string) ([]T, error) {
 	val := reflect.ValueOf(new(T))
 	if val.Elem().Kind() != reflect.Struct {
-		return nil, TargetTypeMustBeStructError
+		return nil, ErrTargetTypeMustBeStruct
 	}
 	typ := val.Elem().Type()
 	var results []T
 	fields := getPrefixFieldMap(typ)
 	var newElementPrefix = getNewElementPrefixesSlice(typ)
 	if len(newElementPrefix) == 0 {
-		return nil, NoFieldMarkedAsNewElementError
+		return nil, ErrNoFieldMarkedAsNewElement
 	}
 	var current reflect.Value
 	for _, line := range mpdAnswer {

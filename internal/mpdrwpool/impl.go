@@ -3,11 +3,12 @@ package mpdrwpool
 import (
 	"context"
 	"errors"
+	"time"
+
 	"github.com/anpotashev/go-observer/pkg/observer"
 	"github.com/anpotashev/mpdgo/internal/commands"
 	log "github.com/anpotashev/mpdgo/internal/logger"
 	"github.com/anpotashev/mpdgo/internal/mpdrw"
-	"time"
 )
 
 type Impl struct {
@@ -32,7 +33,7 @@ type mpdRWFactory func() (mpdrw.MpdRW, error)
 // onDisconnect is a callback invoked when the connection is disconnected.
 //
 // Can return the following errors:
-// - ConnectionError
+// - ErrConnection
 func NewMpdRWPool(requestContext, ctx context.Context,
 	poolSize uint8,
 	host string,
@@ -60,14 +61,14 @@ func newMpdRWPool(
 	if err != nil {
 		log.ErrorContext(requestContext, "Error creating idleRW", "err", err)
 		cancel()
-		return nil, errors.Join(ConnectionError, err)
+		return nil, errors.Join(ErrConnection, err)
 	}
 	rws := make(chan mpdrw.MpdRW, poolSize)
 	for range poolSize {
 		rw, err := mpdRWFactoryFunction()
 		if err != nil {
 			cancel()
-			return nil, errors.Join(ConnectionError, err)
+			return nil, errors.Join(ErrConnection, err)
 		}
 		rws <- rw
 	}
@@ -95,10 +96,10 @@ func (p *Impl) SendSingleCommand(requestContext context.Context, command command
 	}()
 	result, err := rw.SendSingleCommand(requestContext, command)
 	if err != nil {
-		if errors.Is(err, mpdrw.IOError) {
+		if errors.Is(err, mpdrw.ErrIO) {
 			p.cancel()
 		}
-		return nil, errors.Join(SendCommandError, err)
+		return nil, errors.Join(ErrSendingCommand, err)
 	}
 	return result, nil
 }
@@ -110,10 +111,10 @@ func (p *Impl) SendBatchCommand(requestContext context.Context, command commands
 	}()
 	err := rw.SendBatchCommand(requestContext, command)
 	if err != nil {
-		if errors.Is(err, mpdrw.IOError) {
+		if errors.Is(err, mpdrw.ErrIO) {
 			p.cancel()
 		}
-		return errors.Join(SendCommandError, err)
+		return errors.Join(ErrSendingCommand, err)
 	}
 	return nil
 }
@@ -135,6 +136,7 @@ func (p *Impl) startPeriodicPing() {
 		select {
 		case <-tick:
 			for i := 0; i < cap(p.rws); i++ {
+				//lint:ignore SA1012 ignore
 				p.SendSingleCommand(nil, commands.NewSingleCommand(commands.PING))
 			}
 		case <-p.ctx.Done():

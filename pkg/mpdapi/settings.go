@@ -1,10 +1,11 @@
 package mpdapi
 
 import (
-	"github.com/anpotashev/mpdgo/internal/commands"
-	"github.com/anpotashev/mpdgo/internal/parser"
 	"regexp"
 	"strconv"
+
+	"github.com/anpotashev/mpdgo/internal/commands"
+	"github.com/anpotashev/mpdgo/internal/parser"
 )
 
 type Settings interface {
@@ -88,7 +89,7 @@ func (api *Impl) Status() (Status, error) {
 	}
 	var songTime *SongTime
 	if status.Time != nil {
-		songTimeRegexp := regexp.MustCompile("(\\d+):(\\d+)")
+		songTimeRegexp := regexp.MustCompile(`(\d+):(\d+)`)
 		matches := songTimeRegexp.FindStringSubmatch(*status.Time)
 		if len(matches) == 3 {
 			songTime = &SongTime{}

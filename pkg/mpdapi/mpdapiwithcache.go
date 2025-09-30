@@ -2,8 +2,9 @@ package mpdapi
 
 import (
 	"context"
-	"github.com/patrickmn/go-cache"
 	"time"
+
+	"github.com/patrickmn/go-cache"
 )
 
 const (
@@ -11,9 +12,6 @@ const (
 	playlistCN = "playlist"
 	statusCN   = "status"
 )
-
-// all cache keys to invalidate on disconnect
-var cacheKeys = []string{treeCN, playlistCN, statusCN}
 
 var clearCacheByEventMap = map[MpdEventType][]string{
 	ON_CONNECT:                 {},
@@ -30,12 +28,6 @@ var clearCacheByEventMap = map[MpdEventType][]string{
 	ON_STICKER_CHANGED:         {},
 	ON_SUBSCRIPTION_CHANGED:    {},
 	ON_MESSAGE_CHANGED:         {},
-}
-
-// map idleCode to cacheKeys
-var idleEventCacheKey = map[string][]string{
-	"update":   {treeCN},
-	"playlist": {playlistCN},
 }
 
 type ImplWithCache struct {

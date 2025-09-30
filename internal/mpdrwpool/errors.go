@@ -3,6 +3,6 @@ package mpdrwpool
 import "errors"
 
 var (
-	ConnectionError  = errors.New("connection error")
-	SendCommandError = errors.New("error sending command")
+	ErrConnection     = errors.New("connection error")
+	ErrSendingCommand = errors.New("error sending command")
 )
