@@ -2,11 +2,12 @@ package mpdapi
 
 import (
 	"context"
+	"log/slog"
+	"time"
+
 	"github.com/anpotashev/go-observer/pkg/observer"
 	"github.com/anpotashev/mpdgo/internal/logger"
 	"github.com/anpotashev/mpdgo/internal/mpdclient"
-	"log/slog"
-	"time"
 )
 
 type MpdApi interface {

@@ -2,10 +2,11 @@ package mpdapi
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/anpotashev/mpdgo/internal/commands"
 	log "github.com/anpotashev/mpdgo/internal/logger"
 	"github.com/anpotashev/mpdgo/internal/parser"
-	"time"
 )
 
 type Playlist struct {
@@ -36,6 +37,7 @@ type CurrentPlaylist interface {
 	BatchMove(fromStartPos, fromEndPos, toPos int) error
 	ShuffleAll() error
 	Shuffle(fromPos, toPos int) error
+	AddStoredToPos(name string, pos int) error
 }
 
 func (api *Impl) Playlist() (*Playlist, error) {
@@ -154,4 +156,21 @@ func (api *Impl) ShuffleAll() error {
 func (api *Impl) Shuffle(fromPos, toPos int) error {
 	cmd := commands.NewSingleCommand(commands.SHUFFLE).AddParams(fmt.Sprintf("%d:%d", fromPos, toPos))
 	return wrapPkgErrorIgnoringAnswer(api.mpdClient.SendSingleCommand(api.requestContext, cmd))
+}
+
+func (api *Impl) AddStoredToPos(name string, pos int) error {
+	cmd := commands.NewSingleCommand(commands.LISTPLAYLIST_INFO).AddParams(name)
+	list, err := api.mpdClient.SendSingleCommand(api.requestContext, cmd)
+	if err != nil {
+		return wrapPkgError(err)
+	}
+	playlistItems, err := parser.ParseMultiValue[PlaylistItem](list)
+	if err != nil {
+		return wrapPkgError(err)
+	}
+	var cmds []commands.SingleCommand
+	for i, item := range playlistItems {
+		cmds = append(cmds, commands.NewSingleCommand(commands.ADD_ID).AddParams(item.File).AddParams(pos+i))
+	}
+	return wrapPkgError(api.mpdClient.SendBatchCommand(api.requestContext, cmds))
 }
