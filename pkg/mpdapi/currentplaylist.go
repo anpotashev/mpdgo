@@ -17,11 +17,11 @@ type Playlist struct {
 
 type PlaylistItem struct {
 	File   string  `mpd_prefix:"file" is_new_element_prefix:"true"`
-	Time   int     `mpd_prefix:"Time"`
 	Artist *string `mpd_prefix:"Artist"`
 	Title  *string `mpd_prefix:"Title"`
 	Album  *string `mpd_prefix:"Album"`
 	Track  *string `mpd_prefix:"Track"`
+	Time   int     `mpd_prefix:"Time"`
 	Pos    int     `mpd_prefix:"Pos"`
 	Id     int     `mpd_prefix:"Id"`
 }

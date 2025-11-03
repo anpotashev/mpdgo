@@ -12,8 +12,8 @@ type Outputs interface {
 }
 
 type Output struct {
-	Id      int    `mpd_prefix:"outputid" is_new_element_prefix:"true"`
 	Name    string `mpd_prefix:"outputname"`
+	Id      int    `mpd_prefix:"outputid" is_new_element_prefix:"true"`
 	Enabled bool   `mpd_prefix:"outputenabled"`
 }
 

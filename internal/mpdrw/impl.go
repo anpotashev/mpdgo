@@ -11,6 +11,7 @@ import (
 
 	"github.com/anpotashev/mpdgo/internal/commands"
 	log "github.com/anpotashev/mpdgo/internal/logger"
+	"github.com/google/uuid"
 )
 
 type Impl struct {
@@ -104,8 +105,11 @@ func (m *Impl) SendBatchCommand(requestContext context.Context, command commands
 }
 
 func (m *Impl) sendCommand(requestContext context.Context, command commands.MpdCommand) ([]string, error) {
-	log.DebugContext(requestContext, "Sending command", "command", command)
-	log.DebugContext(requestContext, "Writing the command to writer")
+	if requestContext != nil {
+		commandUUID, _ := uuid.NewUUID()
+		requestContext = context.WithValue(requestContext, "command_id", commandUUID.String())
+	}
+	log.DebugContext(requestContext, "Sending command", "command", command.String())
 	_, err := m.rw.WriteString(command.String())
 	if err != nil {
 		return nil, errors.Join(ErrIO, err)
@@ -135,7 +139,7 @@ func (m *Impl) readAnswerWithTimeout(requestContext context.Context) ([]string, 
 		log.DebugContext(requestContext, "Received data from the error channel", "err", err)
 		return nil, err
 	case <-timer.C:
-		return nil, errors.Join(ErrIO, fmt.Errorf("timeout reading answer"))
+		return nil, errors.Join(ErrIO, fmt.Errorf("timeout reading the answer"))
 	}
 }
 
