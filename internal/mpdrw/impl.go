@@ -145,8 +145,6 @@ func (m *Impl) readAnswerWithTimeout(requestContext context.Context) ([]string, 
 
 func (m *Impl) readAnswer(requestContext context.Context, readChan chan []string, errorChan chan error, timer *time.Timer) {
 	log.DebugContext(requestContext, "Starting reading the answer")
-	defer close(readChan)
-	defer close(errorChan)
 	var result []string
 	for {
 		line, err := m.rw.ReadString('\n')
