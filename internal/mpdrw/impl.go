@@ -36,7 +36,7 @@ func newMpdRW(requestContext, ctx context.Context, dialer Dialer, password strin
 	log.DebugContext(requestContext, "Dialing")
 	conn, err := dialer()
 	if err != nil {
-		return nil, errors.Join(ErrIO, err)
+		return nil, errors.Join(errors.Join(ErrIO, err), err)
 	}
 	log.DebugContext(requestContext, "Creating reader and writer")
 	r := bufio.NewReader(conn)
@@ -75,13 +75,13 @@ func (m *Impl) SendIdleCommand() ([]string, error) {
 	log.DebugContext(idleCommandContext, "Writing the command")
 	_, err := m.rw.WriteString(command.String())
 	if err != nil {
-		return nil, errors.Join(err, ErrIO)
+		return nil, errors.Join(err, errors.Join(ErrIO, err))
 	}
 	log.DebugContext(idleCommandContext, "Flushing the writer")
 	err = m.rw.Flush()
 	if err != nil {
 		log.ErrorContext(idleCommandContext, "Flushing the writer error", "err", err)
-		return nil, errors.Join(err, ErrIO)
+		return nil, errors.Join(err, errors.Join(ErrIO, err))
 	}
 	log.DebugContext(idleCommandContext, "Creating answer and error channels")
 	answerChan := make(chan []string)
@@ -116,12 +116,12 @@ func (m *Impl) sendCommand(requestContext context.Context, command commands.MpdC
 	log.DebugContext(requestContext, "Sending command", "command", command.String())
 	_, err := m.rw.WriteString(command.String())
 	if err != nil {
-		return nil, errors.Join(ErrIO, err)
+		return nil, errors.Join(errors.Join(ErrIO, err), err)
 	}
 	log.DebugContext(requestContext, "Flushing the writer")
 	err = m.rw.Flush()
 	if err != nil {
-		return nil, errors.Join(ErrIO, err)
+		return nil, errors.Join(errors.Join(ErrIO, err), err)
 	}
 	log.DebugContext(requestContext, "Waiting the answer")
 	return m.readAnswerWithTimeout(requestContext)
@@ -154,7 +154,7 @@ func (m *Impl) readAnswer(requestContext context.Context, readChan chan []string
 		line, err := m.rw.ReadString('\n')
 		if err != nil {
 			select {
-			case errorChan <- ErrIO:
+			case errorChan <- errors.Join(ErrIO, err):
 			default: // non-blocking send
 			}
 			return
