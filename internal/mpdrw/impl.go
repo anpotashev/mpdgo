@@ -67,30 +67,34 @@ func newMpdRW(requestContext, ctx context.Context, dialer Dialer, password strin
 }
 
 func (m *Impl) SendIdleCommand() ([]string, error) {
-	log.Debug("Sending idle command")
+	idleCommandContext := context.Background()
+	commandUUID, _ := uuid.NewUUID()
+	idleCommandContext = context.WithValue(idleCommandContext, "command_id", commandUUID.String())
+	log.DebugContext(idleCommandContext, "Sending idle command")
 	command := commands.NewSingleCommand(commands.IDLE)
-	log.Debug("Writing the command")
+	log.DebugContext(idleCommandContext, "Writing the command")
 	_, err := m.rw.WriteString(command.String())
 	if err != nil {
 		return nil, errors.Join(err, ErrIO)
 	}
-	log.Debug("Flushing the writer")
+	log.DebugContext(idleCommandContext, "Flushing the writer")
 	err = m.rw.Flush()
 	if err != nil {
+		log.ErrorContext(idleCommandContext, "Flushing the writer error", "err", err)
 		return nil, errors.Join(err, ErrIO)
 	}
-	log.Debug("Creating answer and error channels")
+	log.DebugContext(idleCommandContext, "Creating answer and error channels")
 	answerChan := make(chan []string)
 	errorChan := make(chan error)
-	log.Debug("Starting a goroutine that reads answer")
+	log.DebugContext(idleCommandContext, "Starting a goroutine that reads answer")
 	//lint:ignore SA1012 ignore
-	go m.readAnswer(nil, answerChan, errorChan, nil)
+	go m.readAnswer(idleCommandContext, answerChan, errorChan, nil)
 	select {
 	case answer := <-answerChan:
-		log.Debug("Got answer in the answer channel", "answer", log.Truncate(strings.Join(answer, "\n"), 100))
+		log.DebugContext(idleCommandContext, "Got answer in the answer channel", "answer", log.Truncate(strings.Join(answer, "\n"), 100))
 		return answer, nil
 	case err := <-errorChan:
-		log.Debug("Got answer in the error channel", "err", err)
+		log.DebugContext(idleCommandContext, "Got answer in the error channel", "err", err)
 		return nil, err
 	}
 }
