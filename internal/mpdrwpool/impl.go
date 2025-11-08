@@ -97,6 +97,7 @@ func (p *Impl) SendSingleCommand(requestContext context.Context, command command
 	result, err := rw.SendSingleCommand(requestContext, command)
 	if err != nil {
 		if errors.Is(err, mpdrw.ErrIO) {
+			log.WarnContext(requestContext, "Received IO error (single command). Disconnecting.", "err", err)
 			p.cancel()
 		}
 		return nil, errors.Join(ErrSendingCommand, err)
@@ -112,6 +113,7 @@ func (p *Impl) SendBatchCommand(requestContext context.Context, command commands
 	err := rw.SendBatchCommand(requestContext, command)
 	if err != nil {
 		if errors.Is(err, mpdrw.ErrIO) {
+			log.WarnContext(requestContext, "Received IO error (batch command). Disconnecting.", "err", err)
 			p.cancel()
 		}
 		return errors.Join(ErrSendingCommand, err)
@@ -123,6 +125,12 @@ func (p *Impl) startIdleWatching() {
 	for {
 		result, err := p.idleRW.SendIdleCommand()
 		if err != nil {
+			if errors.Is(err, mpdrw.ErrIO) {
+				log.Warn("Received IO error. (idle) Disconnecting.", "err", err)
+			} else {
+				log.Warn("Received error. (idle) Disconnecting.", "err", err)
+				continue
+			}
 			p.cancel()
 			return
 		}
