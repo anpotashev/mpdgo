@@ -170,12 +170,14 @@ func (m *Impl) readAnswer(requestContext context.Context, readChan chan []string
 				case errorChan <- err:
 				default: // non-blocking send
 				}
+				log.DebugContext(requestContext, "stop reading answers (error case)")
 				return
 			}
 			select {
 			case readChan <- result:
 			default: // non-blocking send
 			}
+			log.DebugContext(requestContext, "stop reading answers (success case)")
 			return
 		}
 		result = append(result, line)
