@@ -53,6 +53,7 @@ func newMpdRW(requestContext, ctx context.Context, dialer Dialer, password strin
 	log.DebugContext(requestContext, "Listening version")
 	_, err = impl.readAnswerWithTimeout(requestContext)
 	if err != nil {
+		log.DebugContext(requestContext, "Error reading answer: %v", err)
 		return nil, err
 	}
 	if password != "" {
@@ -88,6 +89,8 @@ func (m *Impl) SendIdleCommand() ([]string, error) {
 	errorChan := make(chan error)
 	log.DebugContext(idleCommandContext, "Starting a goroutine that reads answer")
 	//lint:ignore SA1012 ignore
+	idleCommandContext, cancel := context.WithCancel(idleCommandContext)
+	defer cancel()
 	go m.readAnswer(idleCommandContext, answerChan, errorChan, nil)
 	select {
 	case answer := <-answerChan:
@@ -134,6 +137,8 @@ func (m *Impl) readAnswerWithTimeout(requestContext context.Context) ([]string, 
 	log.DebugContext(requestContext, "Creation the timer")
 	timer := time.NewTimer(m.readTimeout)
 	log.DebugContext(requestContext, "Starting a goroutine that reads an answer")
+	requestContext, cancel := context.WithCancel(requestContext)
+	defer cancel()
 	go m.readAnswer(requestContext, answerChan, errorChan, timer)
 	select {
 	case answer := <-answerChan:
@@ -143,6 +148,7 @@ func (m *Impl) readAnswerWithTimeout(requestContext context.Context) ([]string, 
 		log.DebugContext(requestContext, "Received data from the error channel", "err", err)
 		return nil, err
 	case <-timer.C:
+		log.DebugContext(requestContext, "Timeout")
 		return nil, errors.Join(ErrIO, fmt.Errorf("timeout reading the answer"))
 	}
 }
@@ -175,7 +181,7 @@ func (m *Impl) readAnswer(requestContext context.Context, readChan chan []string
 			}
 			select {
 			case readChan <- result:
-			default: // non-blocking send
+			case <-requestContext.Done():
 			}
 			log.DebugContext(requestContext, "stop reading answers (success case)")
 			return
