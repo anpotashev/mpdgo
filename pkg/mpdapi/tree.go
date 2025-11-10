@@ -1,9 +1,10 @@
 package mpdapi
 
 import (
+	"strings"
+
 	"github.com/anpotashev/mpdgo/internal/commands"
 	"github.com/anpotashev/mpdgo/internal/parser"
-	"strings"
 )
 
 type Tree interface {
@@ -128,7 +129,10 @@ func (api *Impl) Tree() (*DirectoryItem, error) {
 }
 
 func findParentDirItem(path string, currentActiveDir *DirectoryItem) *DirectoryItem {
-	if strings.HasPrefix(path, currentActiveDir.Path) {
+	if currentActiveDir.Path == "" {
+		return currentActiveDir
+	}
+	if strings.HasPrefix(path, currentActiveDir.Path+"/") {
 		return currentActiveDir
 	}
 	return findParentDirItem(path, currentActiveDir.parent)
