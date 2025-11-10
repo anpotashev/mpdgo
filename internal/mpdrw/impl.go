@@ -112,10 +112,11 @@ func (m *Impl) SendBatchCommand(requestContext context.Context, command commands
 }
 
 func (m *Impl) sendCommand(requestContext context.Context, command commands.MpdCommand) ([]string, error) {
-	if requestContext != nil {
-		commandUUID, _ := uuid.NewUUID()
-		requestContext = context.WithValue(requestContext, "command_id", commandUUID.String())
+	if requestContext == nil {
+		requestContext = context.Background()
 	}
+	commandUUID, _ := uuid.NewUUID()
+	requestContext = context.WithValue(requestContext, "command_id", commandUUID.String())
 	log.DebugContext(requestContext, "Sending command", "command", command.String())
 	_, err := m.rw.WriteString(command.String())
 	if err != nil {
